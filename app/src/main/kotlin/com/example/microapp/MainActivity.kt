@@ -1,21 +1,19 @@
 package com.example.microapp
 
-import android.app.Activity
 import android.os.Bundle
-import android.widget.TextView
-import android.view.Gravity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Bina XML file ke direct code se UI bana rahe hain!
-        val textView = TextView(this).apply {
-            text = "Hello Achal! welcome s Kotlin App is Alive! 🔥"
-            textSize = 24f
-            gravity = Gravity.CENTER
+
+        // Status bar & nav bar colors matching app background (#07071A)
+        window.statusBarColor = android.graphics.Color.parseColor("#07071A")
+        window.navigationBarColor = android.graphics.Color.parseColor("#07071A")
+
+        setContent {
+            InstaVaultApp()
         }
-        
-        setContentView(textView)
     }
 }
