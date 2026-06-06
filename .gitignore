@@ -1,1 +1,17 @@
+# Gradle files
 .gradle/
+build/
+app/build/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+local.properties
+
+# Project IDX & VS Code
+.idx/
+.vscode/
+
+# OS specific files
+.DS_Store
+Thumbs.db
