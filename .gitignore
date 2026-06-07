@@ -15,3 +15,12 @@ local.properties
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Markdown files
+*.md
+
+# Local configs, logs and heap dumps
+*.hprof
+*.log
+local.properties
+
