@@ -50,4 +50,14 @@ class SpinWheelViewModel : ViewModel() {
             it.copy(isSpinning = false, result = it.segments[segIndex])
         }
     }
+
+    fun resetWheel() {
+        _uiState.update {
+            it.copy(
+                isSpinning = false,
+                result = null,
+                targetAngle = 0f
+            )
+        }
+    }
 }

@@ -43,7 +43,7 @@ import kotlin.math.sin
 fun SpinWheelScreen(onNavigate: (Screen) -> Unit, viewModel: SpinWheelViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val animatedAngle = remember { Animatable(0f) }
+    val animatedAngle = remember { Animatable(uiState.targetAngle) }
 
     val segAngle = 360f / uiState.segments.size
 
@@ -81,7 +81,10 @@ fun SpinWheelScreen(onNavigate: (Screen) -> Unit, viewModel: SpinWheelViewModel 
                 "← Back",
                 color = C.greyL,
                 fontSize = 14.sp,
-                modifier = Modifier.clickable { onNavigate(Screen.Games) }
+                modifier = Modifier.clickable {
+                    viewModel.resetWheel()
+                    onNavigate(Screen.Games)
+                }
             )
             Tag(text = "🎰 Spin Wheel", color = C.gold)
             Tag(text = "1 Free/Day", color = C.greyL)
@@ -220,7 +223,10 @@ fun SpinWheelScreen(onNavigate: (Screen) -> Unit, viewModel: SpinWheelViewModel 
             }
             Btn(
                 text = "← Games Pe Wapas",
-                onClick = { onNavigate(Screen.Games) },
+                onClick = {
+                    viewModel.resetWheel()
+                    onNavigate(Screen.Games)
+                },
                 variant = "primary"
             )
         } else {
