@@ -1,4 +1,4 @@
-package com.example.microapp
+package com.example.microapp.feature.games
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,33 +9,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-data class GameData(
-    val icon: String,
-    val title: String,
-    val sub: String,
-    val reward: String,
-    val color: Color,
-    val id: String
-)
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.microapp.core.theme.C
+import com.example.microapp.navigation.Screen
 
 @Composable
-fun GamesScreen(onNavigate: (String) -> Unit) {
-    val games = listOf(
-        GameData("🧠", "Quiz Master", "GK + Bollywood", "+30 Sparks", C.blue, "quiz"),
-        GameData("🎯", "Tap Frenzy", "30 sec challenge", "+20 Sparks", C.green, "tap"),
-        GameData("🎰", "Spin Wheel", "Daily free spin!", "Up to +500 Sparks", C.gold, "spin"),
-        GameData("🃏", "Card Match", "Memory game", "+40 Sparks", C.purple, "cards"),
-        GameData("🔢", "Math Rush", "Quick calculations", "+25 Sparks", Color(0xFFFF6B9D), "math"),
-        GameData("🔤", "Word Hunt", "Find hidden words", "+35 Sparks", Color(0xFF00CEC9), "words")
-    )
+fun GamesScreen(onNavigate: (Screen) -> Unit, viewModel: GamesViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -56,14 +44,23 @@ fun GamesScreen(onNavigate: (String) -> Unit) {
             color = C.grey,
             modifier = Modifier.padding(bottom = 18.dp)
         )
-        
+
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            games.chunked(2).forEach { rowGames ->
+            uiState.games.chunked(2).forEach { rowGames ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     rowGames.forEach { g ->
+                        val targetScreen = when (g.routeId) {
+                            "quiz" -> Screen.Quiz
+                            "tap" -> Screen.TapGame
+                            "spin" -> Screen.SpinWheel
+                            "cards" -> Screen.CardMatch
+                            "math" -> Screen.MathRush
+                            "words" -> Screen.WordHunt
+                            else -> Screen.Games
+                        }
                         Column(
                             modifier = Modifier
                                 .weight(1f)
@@ -77,7 +74,7 @@ fun GamesScreen(onNavigate: (String) -> Unit) {
                                     )
                                 )
                                 .border(1.dp, g.color.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
-                                .clickable { onNavigate(g.id) }
+                                .clickable { onNavigate(targetScreen) }
                                 .padding(vertical = 18.dp, horizontal = 14.dp)
                         ) {
                             Text(
@@ -93,7 +90,7 @@ fun GamesScreen(onNavigate: (String) -> Unit) {
                                 modifier = Modifier.padding(bottom = 3.dp)
                             )
                             Text(
-                                text = g.sub,
+                                text = g.subtitle,
                                 fontSize = 11.sp,
                                 color = C.grey,
                                 modifier = Modifier.padding(bottom = 10.dp)

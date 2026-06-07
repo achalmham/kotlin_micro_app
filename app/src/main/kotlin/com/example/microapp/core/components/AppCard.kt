@@ -1,0 +1,44 @@
+package com.example.microapp.core.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.dp
+import com.example.microapp.core.theme.C
+
+// ─── AppCard ───────────────────────────────────────────────────
+// Matches JSX: const Card = ({ children, glow, style }) => ...
+@Composable
+fun AppCard(
+    modifier: Modifier = Modifier,
+    glow: String = "",
+    onClick: (() -> Unit)? = null,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val borderColor = when (glow) {
+        "gold" -> C.gold.copy(alpha = 0.2f)
+        "green" -> C.green.copy(alpha = 0.2f)
+        else -> C.purple.copy(alpha = 0.2f)
+    }
+    val shape = RoundedCornerShape(20.dp)
+
+    Column(
+        modifier = modifier
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(C.cardL, C.card)))
+            .border(1.dp, borderColor, shape)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick)
+                else Modifier
+            )
+            .padding(contentPadding),
+        content = content
+    )
+}

@@ -1,0 +1,3 @@
+-keepattributes *Annotation*
+-keep class com.example.microapp.data.model.** { *; }
+-dontwarn kotlinx.**

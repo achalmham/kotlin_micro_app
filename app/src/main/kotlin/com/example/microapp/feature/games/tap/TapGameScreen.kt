@@ -1,4 +1,4 @@
-package com.example.microapp
+package com.example.microapp.feature.games.tap
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -6,7 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,58 +17,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.microapp.core.components.AppCard
+import com.example.microapp.core.components.Btn
+import com.example.microapp.core.components.Tag
+import com.example.microapp.core.theme.C
+import com.example.microapp.navigation.Screen
 import kotlinx.coroutines.delay
-import kotlin.math.min
-import kotlin.random.Random
 
-// ─── Data ──────────────────────────────────────────────────────
-private data class Spark(val id: Int, val x: Float, val y: Float, val size: Float)
-
-// ─── TapGame ───────────────────────────────────────────────────
 @Composable
-fun TapGame(onNavigate: (String) -> Unit) {
-    val sparks = remember { mutableStateListOf<Spark>() }
-    var score by remember { mutableIntStateOf(0) }
-    var timeLeft by remember { mutableIntStateOf(30) }
-    var started by remember { mutableStateOf(false) }
-    var done by remember { mutableStateOf(false) }
-    val idCounter = remember { mutableIntStateOf(0) }
+fun TapGameScreen(onNavigate: (Screen) -> Unit, viewModel: TapGameViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Countdown timer
-    LaunchedEffect(started, done) {
-        if (!started || done) return@LaunchedEffect
-        while (timeLeft > 0) {
+    LaunchedEffect(uiState.isStarted, uiState.isDone) {
+        if (!uiState.isStarted || uiState.isDone) return@LaunchedEffect
+        while (uiState.timeLeft > 0) {
             delay(1000)
-            timeLeft--
+            viewModel.decrementTimer()
         }
-        done = true
     }
 
     // Spark spawner every 700ms
-    LaunchedEffect(started, done) {
-        if (!started || done) return@LaunchedEffect
-        while (!done) {
+    LaunchedEffect(uiState.isStarted, uiState.isDone) {
+        if (!uiState.isStarted || uiState.isDone) return@LaunchedEffect
+        while (!uiState.isDone) {
             delay(700)
-            if (done) break
-            idCounter.intValue++
-            val newSpark = Spark(
-                id = idCounter.intValue,
-                x = Random.nextFloat() * 0.75f,
-                y = Random.nextFloat() * 0.70f,
-                size = 28f + Random.nextFloat() * 20f
-            )
-            // Keep max ~11 sparks on screen
-            if (sparks.size > 10) {
-                sparks.removeAt(0)
-            }
-            sparks.add(newSpark)
+            if (uiState.isDone) break
+            viewModel.spawnSpark()
         }
     }
 
-    val reward = min(score * 2, 20)
-
     // ── Result screen ──
-    if (done) {
+    if (uiState.isDone) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -82,7 +66,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
                 modifier = Modifier.padding(bottom = 6.dp)
             )
             Text(
-                "$score sparks tap kiye!",
+                "${uiState.score} sparks tap kiye!",
                 fontSize = 14.sp,
                 color = C.grey,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -93,7 +77,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
                 modifier = Modifier.padding(bottom = 24.dp)
             ) {
                 Text(
-                    "+$reward",
+                    "+${uiState.reward}",
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Black,
                     color = C.green,
@@ -111,7 +95,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
             }
             Btn(
                 text = "← Games Pe Wapas",
-                onClick = { onNavigate("games") },
+                onClick = { onNavigate(Screen.Games) },
                 variant = "primary"
             )
         }
@@ -136,10 +120,10 @@ fun TapGame(onNavigate: (String) -> Unit) {
                 "← Back",
                 color = C.greyL,
                 fontSize = 14.sp,
-                modifier = Modifier.clickable { onNavigate("games") }
+                modifier = Modifier.clickable { onNavigate(Screen.Games) }
             )
             Tag(text = "🎯 Tap Frenzy", color = C.green)
-            Tag(text = "⏱️ ${timeLeft}s", color = if (timeLeft < 10) C.red else C.greyL)
+            Tag(text = "⏱️ ${uiState.timeLeft}s", color = if (uiState.timeLeft < 10) C.red else C.greyL)
         }
 
         // Score cards row
@@ -151,7 +135,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
         ) {
             AppCard(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)) {
                 Text(
-                    "$score",
+                    "${uiState.score}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = C.gold,
@@ -168,7 +152,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
             }
             AppCard(contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)) {
                 Text(
-                    "+$reward",
+                    "+${uiState.reward}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black,
                     color = C.green,
@@ -185,7 +169,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
             }
         }
 
-        if (!started) {
+        if (!uiState.isStarted) {
             // Start button centered
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -193,7 +177,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
             ) {
                 Btn(
                     text = "🎯 Start Game!",
-                    onClick = { started = true },
+                    onClick = { viewModel.startGame() },
                     variant = "gold",
                     modifier = Modifier.width(180.dp)
                 )
@@ -216,7 +200,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
                 )
 
                 // Sparks
-                sparks.forEach { s ->
+                viewModel.sparks.forEach { s ->
                     Text(
                         "⚡",
                         fontSize = s.size.sp,
@@ -228,8 +212,7 @@ fun TapGame(onNavigate: (String) -> Unit) {
                                 y = (s.y * 400).dp
                             )
                             .clickable {
-                                sparks.removeAll { it.id == s.id }
-                                score++
+                                viewModel.tapSpark(s.id)
                             }
                     )
                 }

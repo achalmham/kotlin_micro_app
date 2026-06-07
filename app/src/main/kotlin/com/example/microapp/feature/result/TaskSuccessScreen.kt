@@ -1,4 +1,4 @@
-package com.example.microapp
+package com.example.microapp.feature.result
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,13 +14,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.microapp.core.components.Btn
+import com.example.microapp.core.theme.C
+import com.example.microapp.navigation.Screen
 
-// ─── TaskSuccess ───────────────────────────────────────────────
 @Composable
-fun TaskSuccess(onNavigate: (String) -> Unit) {
+fun TaskSuccessScreen(onNavigate: (Screen) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -129,7 +130,7 @@ fun TaskSuccess(onNavigate: (String) -> Unit) {
         // Games button (primary)
         Btn(
             text = "🎮 Bonus Games Khelo",
-            onClick = { onNavigate("games") },
+            onClick = { onNavigate(Screen.Games) },
             variant = "primary",
             modifier = Modifier.padding(bottom = 10.dp)
         )
@@ -137,7 +138,7 @@ fun TaskSuccess(onNavigate: (String) -> Unit) {
         // Home button (ghost)
         Btn(
             text = "🏠 Home Pe Jaao",
-            onClick = { onNavigate("home") },
+            onClick = { onNavigate(Screen.Home) },
             variant = "ghost"
         )
     }

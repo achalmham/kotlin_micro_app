@@ -1,11 +1,7 @@
-package com.example.microapp
+package com.example.microapp.core.theme
 
 import androidx.compose.ui.graphics.Color
 
-/**
- * Color constants — exact copy from JSX design (object C).
- * Every hex value matches the original design file.
- */
 object C {
     val bg      = Color(0xFF07071A)
     val card    = Color(0xFF0F0F28)

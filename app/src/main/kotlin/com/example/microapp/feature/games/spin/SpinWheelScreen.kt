@@ -1,4 +1,4 @@
-package com.example.microapp
+package com.example.microapp.feature.games.spin
 
 import android.graphics.Paint
 import android.graphics.Typeface
@@ -12,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
@@ -30,61 +28,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.microapp.core.components.AppCard
+import com.example.microapp.core.components.Btn
+import com.example.microapp.core.components.Tag
+import com.example.microapp.core.theme.C
+import com.example.microapp.navigation.Screen
 import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
-// ─── Data ──────────────────────────────────────────────────────
-private data class WheelSegment(
-    val label: String,
-    val color: Color,
-    val sparks: Int
-)
-
-private val wheelSegments = listOf(
-    WheelSegment("30 Sparks", Color(0xFF4ECDC4), 30),
-    WheelSegment("75 Sparks", Color(0xFF45B7D1), 75),
-    WheelSegment("50 Sparks", Color(0xFF96CEB4), 50),
-    WheelSegment("500 Sparks!", Color(0xFFF5A623), 500),
-    WheelSegment("100 Sparks", Color(0xFFDDA0DD), 100),
-    WheelSegment("25 Sparks", Color(0xFF98D8C8), 25),
-    WheelSegment("200 Sparks", Color(0xFFF7DC6F), 200),
-    WheelSegment("150 Sparks", Color(0xFFBB8FCE), 150),
-)
-
-// ─── SpinWheel ─────────────────────────────────────────────────
 @Composable
-fun SpinWheel(onNavigate: (String) -> Unit) {
-    var spinning by remember { mutableStateOf(false) }
-    var result by remember { mutableStateOf<WheelSegment?>(null) }
-    var targetAngle by remember { mutableFloatStateOf(0f) }
+fun SpinWheelScreen(onNavigate: (Screen) -> Unit, viewModel: SpinWheelViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val animatedAngle = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
 
-    val segAngle = 360f / wheelSegments.size
+    val segAngle = 360f / uiState.segments.size
 
-    val spin: () -> Unit = {
-        if (!spinning && result == null) {
-            spinning = true
-            val extra = 1440f + (Math.random() * 720f).toFloat()
-            val finalAngle = targetAngle + extra
-            targetAngle = finalAngle
-
-            scope.launch {
-                animatedAngle.animateTo(
-                    targetValue = finalAngle,
-                    animationSpec = tween(
-                        durationMillis = 3000,
-                        easing = CubicBezierEasing(0.17f, 0.67f, 0.35f, 1f)
-                    )
+    // Launch animation when targetAngle changes (spinning starts)
+    LaunchedEffect(uiState.targetAngle) {
+        if (uiState.isSpinning) {
+            animatedAngle.animateTo(
+                targetValue = uiState.targetAngle,
+                animationSpec = tween(
+                    durationMillis = 3000,
+                    easing = CubicBezierEasing(0.17f, 0.67f, 0.35f, 1f)
                 )
-                // Determine result segment
-                val normalized = ((finalAngle % 360f) + 360f) % 360f
-                val segIndex = ((360f - normalized) / segAngle).toInt() % wheelSegments.size
-                result = wheelSegments[segIndex]
-                spinning = false
-            }
+            )
+            viewModel.onSpinComplete()
         }
     }
 
@@ -107,7 +81,7 @@ fun SpinWheel(onNavigate: (String) -> Unit) {
                 "← Back",
                 color = C.greyL,
                 fontSize = 14.sp,
-                modifier = Modifier.clickable { onNavigate("games") }
+                modifier = Modifier.clickable { onNavigate(Screen.Games) }
             )
             Tag(text = "🎰 Spin Wheel", color = C.gold)
             Tag(text = "1 Free/Day", color = C.greyL)
@@ -138,7 +112,7 @@ fun SpinWheel(onNavigate: (String) -> Unit) {
                 val centerY = size.height / 2f
                 val radius = size.width / 2f
 
-                wheelSegments.forEachIndexed { i, seg ->
+                uiState.segments.forEachIndexed { i, seg ->
                     val startDeg = i * segAngle - 90f
                     // Draw arc segment
                     drawArc(
@@ -222,14 +196,14 @@ fun SpinWheel(onNavigate: (String) -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         // Result or Spin button
-        if (result != null) {
+        if (uiState.result != null) {
             AppCard(
                 glow = "gold",
                 contentPadding = PaddingValues(horizontal = 40.dp, vertical = 20.dp),
                 modifier = Modifier.padding(bottom = 20.dp)
             ) {
                 Text(
-                    "+${result!!.sparks}",
+                    "+${uiState.result!!.sparks}",
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Black,
                     color = C.gold,
@@ -246,7 +220,7 @@ fun SpinWheel(onNavigate: (String) -> Unit) {
             }
             Btn(
                 text = "← Games Pe Wapas",
-                onClick = { onNavigate("games") },
+                onClick = { onNavigate(Screen.Games) },
                 variant = "primary"
             )
         } else {
@@ -254,8 +228,8 @@ fun SpinWheel(onNavigate: (String) -> Unit) {
                 .fillMaxWidth()
                 .padding(bottom = 20.dp)) {
                 Btn(
-                    text = if (spinning) "Spinning... 🌀" else "🎰 SPIN!",
-                    onClick = { spin() },
+                    text = if (uiState.isSpinning) "Spinning... 🌀" else "🎰 SPIN!",
+                    onClick = { viewModel.spin() },
                     variant = "gold"
                 )
             }

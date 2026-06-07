@@ -1,14 +1,14 @@
-package com.example.microapp
+package com.example.microapp.feature.games.quiz
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,65 +17,41 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.microapp.core.components.AppCard
+import com.example.microapp.core.components.AppProgressBar
+import com.example.microapp.core.components.Btn
+import com.example.microapp.core.components.Tag
+import com.example.microapp.core.theme.C
+import com.example.microapp.navigation.Screen
 import kotlinx.coroutines.delay
 
-// ─── Data ──────────────────────────────────────────────────────
-private data class QuizQuestion(
-    val q: String,
-    val opts: List<String>,
-    val ans: Int
-)
-
-private val quizQuestions = listOf(
-    QuizQuestion("India ki capital kya hai?", listOf("Mumbai", "New Delhi", "Chennai", "Kolkata"), 1),
-    QuizQuestion("Bharat ka rashtriya khel kaun sa hai?", listOf("Cricket", "Football", "Hockey", "Kabaddi"), 2),
-    QuizQuestion("Taj Mahal kahan hai?", listOf("Delhi", "Jaipur", "Agra", "Lucknow"), 2),
-    QuizQuestion("1 + 1 × 0 + 1 = ?", listOf("0", "1", "2", "3"), 2),
-    QuizQuestion("Instagram kis company ka hai?", listOf("Google", "Twitter", "Meta", "Apple"), 2),
-)
-
-// ─── QuizGame ──────────────────────────────────────────────────
 @Composable
-fun QuizGame(onNavigate: (String) -> Unit) {
-    var cur by remember { mutableIntStateOf(0) }
-    var selected by remember { mutableStateOf<Int?>(null) }
-    var score by remember { mutableIntStateOf(0) }
-    var done by remember { mutableStateOf(false) }
-    var time by remember { mutableIntStateOf(15) }
+fun QuizScreen(onNavigate: (Screen) -> Unit, viewModel: QuizViewModel = viewModel()) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Timer: counts down every second; auto-advances when 0
-    LaunchedEffect(cur, done, selected) {
-        if (done || selected != null) return@LaunchedEffect
-        time = 15
-        while (time > 0 && !done && selected == null) {
+    LaunchedEffect(uiState.currentIndex, uiState.isDone, uiState.selectedAnswer) {
+        if (uiState.isDone || uiState.selectedAnswer != null) return@LaunchedEffect
+        while (uiState.timeLeft > 0 && !uiState.isDone && uiState.selectedAnswer == null) {
             delay(1000)
-            time--
+            viewModel.decrementTimer()
         }
-        if (time <= 0 && selected == null && !done) {
-            // auto-advance
-            if (cur + 1 >= quizQuestions.size) {
-                done = true
-            } else {
-                cur++
-                selected = null
-            }
+        if (uiState.timeLeft <= 0 && uiState.selectedAnswer == null && !uiState.isDone) {
+            viewModel.advanceQuestion()
         }
     }
 
     // Auto-advance after answer selection
-    LaunchedEffect(selected) {
-        if (selected == null) return@LaunchedEffect
+    LaunchedEffect(uiState.selectedAnswer) {
+        if (uiState.selectedAnswer == null) return@LaunchedEffect
         delay(800)
-        if (cur + 1 >= quizQuestions.size) {
-            done = true
-        } else {
-            cur++
-            selected = null
-        }
+        viewModel.advanceQuestion()
     }
 
     // ── Result screen ──
-    if (done) {
+    if (uiState.isDone) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -91,7 +67,7 @@ fun QuizGame(onNavigate: (String) -> Unit) {
                 modifier = Modifier.padding(bottom = 6.dp)
             )
             Text(
-                "$score/5 sahi jawab",
+                "${uiState.score}/5 sahi jawab",
                 fontSize = 14.sp,
                 color = C.grey,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -102,7 +78,7 @@ fun QuizGame(onNavigate: (String) -> Unit) {
                 modifier = Modifier.padding(bottom = 24.dp)
             ) {
                 Text(
-                    "+${score * 6}",
+                    "+${uiState.score * 6}",
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Black,
                     color = C.gold,
@@ -120,7 +96,7 @@ fun QuizGame(onNavigate: (String) -> Unit) {
             }
             Btn(
                 text = "← Games Pe Wapas",
-                onClick = { onNavigate("games") },
+                onClick = { onNavigate(Screen.Games) },
                 variant = "primary"
             )
         }
@@ -128,7 +104,7 @@ fun QuizGame(onNavigate: (String) -> Unit) {
     }
 
     // ── Game screen ──
-    val q = quizQuestions[cur]
+    val q = uiState.questions[uiState.currentIndex]
 
     Column(
         modifier = Modifier
@@ -147,17 +123,17 @@ fun QuizGame(onNavigate: (String) -> Unit) {
                 "← Back",
                 color = C.greyL,
                 fontSize = 14.sp,
-                modifier = Modifier.clickable { onNavigate("games") }
+                modifier = Modifier.clickable { onNavigate(Screen.Games) }
             )
             Tag(text = "🧠 Quiz Master", color = C.blue)
-            Tag(text = "⏱️ ${time}s", color = if (time < 6) C.red else C.greyL)
+            Tag(text = "⏱️ ${uiState.timeLeft}s", color = if (uiState.timeLeft < 6) C.red else C.greyL)
         }
 
         // Progress bar + counter
         Column(modifier = Modifier.padding(bottom = 20.dp)) {
-            AppProgressBar(value = cur, max = quizQuestions.size, color = C.blue)
+            AppProgressBar(value = uiState.currentIndex, max = uiState.questions.size, color = C.blue)
             Text(
-                "${cur + 1} / ${quizQuestions.size}",
+                "${uiState.currentIndex + 1} / ${uiState.questions.size}",
                 fontSize = 11.sp,
                 color = C.grey,
                 textAlign = TextAlign.End,
@@ -173,7 +149,7 @@ fun QuizGame(onNavigate: (String) -> Unit) {
             modifier = Modifier.padding(bottom = 24.dp)
         ) {
             Text(
-                q.q,
+                q.question,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = C.white,
@@ -183,19 +159,19 @@ fun QuizGame(onNavigate: (String) -> Unit) {
 
         // Options
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            q.opts.forEachIndexed { i, option ->
+            q.options.forEachIndexed { i, option ->
                 val bg: Color
                 val borderColor: Color
                 val textColor: Color
 
-                if (selected != null) {
+                if (uiState.selectedAnswer != null) {
                     when {
-                        i == q.ans -> {
+                        i == q.correctIndex -> {
                             bg = C.green.copy(alpha = 0.13f)
                             borderColor = C.green.copy(alpha = 0.53f)
                             textColor = C.green
                         }
-                        i == selected && selected != q.ans -> {
+                        i == uiState.selectedAnswer && uiState.selectedAnswer != q.correctIndex -> {
                             bg = C.red.copy(alpha = 0.13f)
                             borderColor = C.red.copy(alpha = 0.53f)
                             textColor = C.red
@@ -220,9 +196,8 @@ fun QuizGame(onNavigate: (String) -> Unit) {
                         .background(bg)
                         .border(1.5.dp, borderColor, RoundedCornerShape(14.dp))
                         .clickable {
-                            if (selected == null) {
-                                selected = i
-                                if (i == q.ans) score++
+                            if (uiState.selectedAnswer == null) {
+                                viewModel.selectAnswer(i)
                             }
                         }
                         .padding(horizontal = 18.dp, vertical = 14.dp)
